@@ -58,3 +58,51 @@ The `podkop` service can be managed using the init script:
 ## Interaction Guidelines
 
 *   **Language:** Please respond in Russian. Be direct, comprehensive, and don't hesitate to provide detailed, honest feedback.
+
+## Development Process and Conventions
+
+This section documents the development process and conventions established for this project. All content in this file, including this section, should be written in **English**.
+
+### Commit Messages
+
+To maintain a clear and consistent git history, and to avoid potential encoding issues, please follow these guidelines for commit messages:
+
+*   **Use English:** All commit messages must be written in English.
+*   **Use Conventional Commits:** Follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification. The format is:
+    ```
+    <type>(<scope>): <subject>
+    ```
+    *   **type:** `feat` (new feature), `fix` (bug fix), `docs` (documentation), `style` (formatting), `refactor` (code refactoring), `test` (adding tests), `chore` (build process, admin).
+    *   **scope (optional):** The part of the codebase that is affected (e.g., `podkop`, `luci-app`, `readme`).
+    *   **subject:** A short, imperative-tense description of the change.
+
+*   **Examples:**
+    ```
+    feat(podkop): Add firewall helper for isolated zones
+    docs: Update installation instructions in README.md
+    chore: Bump version to 0.4.7
+    ```
+
+### Release Process
+
+To create a new release, follow these steps:
+
+1.  **Update Version:** Increment the `PKG_VERSION` in both `podkop/Makefile` and `luci-app-podkop/Makefile`.
+2.  **Update Changelog:** Add a new release section to `CHANGELOG.md` with a summary of the changes. Follow the format from [Keep a Changelog](https://keepachangelog.com/en/1.1.1/).
+3.  **Commit Changes:** Commit the version and changelog updates with a message like `chore: Bump version to x.y.z`.
+4.  **Create Tag:** Create a new **lightweight** git tag (without an annotation message). The tag name must start with `v` (e.g., `v0.4.7`).
+    ```sh
+    git tag vx.y.z
+    ```
+5.  **Push Changes:** Push the commit and the new tag to the remote repository.
+    ```sh
+    git push origin main --tags
+    ```
+6.  **Verify:** Pushing a new tag will trigger the GitHub Actions workflow. Go to the "Actions" tab in the repository to monitor the build process. If the build is successful, a new release with the compiled `.ipk` packages will be created automatically.
+
+### Development Environment
+
+*   **Line Endings:** The project uses Unix-style line endings (LF). If you are on Windows, it is recommended to configure git to handle line endings correctly to avoid issues.
+    ```sh
+    git config --global core.autocrlf true
+    ```
