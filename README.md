@@ -19,15 +19,15 @@ https://podkop.net/
 
 Вкратце, достаточно одного скрипта для установки и обновления:
 ```
-sh <(wget -O - https://raw.githubusercontent.com/itdoginfo/podkop/refs/heads/main/install.sh)
+sh <(wget -O - https://raw.githubusercontent.com/blindmaster24/podkop-ng/main/install.sh)
 ```
 Автоматическая установка русского языка:
 ```
-sh <(wget -O - https://raw.githubusercontent.com/itdoginfo/podkop/main/install.sh) --rus=y
+sh <(wget -O - https://raw.githubusercontent.com/blindmaster24/podkop-ng/main/install.sh) --rus=y
 ```
 Без установки русского языка:
 ```
-sh <(wget -O - https://raw.githubusercontent.com/itdoginfo/podkop/main/install.sh) --rus=n
+sh <(wget -O - https://raw.githubusercontent.com/blindmaster24/podkop-ng/main/install.sh) --rus=n
 ```
 
 # ToDo
