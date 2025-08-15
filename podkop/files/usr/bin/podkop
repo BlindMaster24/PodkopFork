@@ -3,12 +3,15 @@
 [ -r /lib/functions.sh ] && . /lib/functions.sh
 [ -r /lib/config/uci.sh ] && . /lib/config/uci.sh
 
-config_load "/etc/config/podkop"
+# =================================================================
+# Constants
+# =================================================================
 
+# URLs
 GITHUB_RAW_URL="https://raw.githubusercontent.com/itdoginfo/allow-domains/main"
 SRS_MAIN_URL="https://github.com/itdoginfo/allow-domains/releases/latest/download"
 DOMAINS_RU_INSIDE="${GITHUB_RAW_URL}/Russia/inside-dnsmasq-nfset.lst"
-DOMAINS_RU_OUTSIDE="${GITHUB_RAW_URL}/Russia/outside-dnsmasq-nfset.lst" 
+DOMAINS_RU_OUTSIDE="${GITHUB_RAW_URL}/Russia/outside-dnsmasq-nfset.lst"
 DOMAINS_UA="${GITHUB_RAW_URL}/Ukraine/inside-dnsmasq-nfset.lst"
 DOMAINS_YOUTUBE="${GITHUB_RAW_URL}/Services/youtube.lst"
 SUBNETS_TWITTER="${GITHUB_RAW_URL}/Subnets/IPv4/twitter.lst"
@@ -18,20 +21,34 @@ SUBNETS_TELERAM="${GITHUB_RAW_URL}/Subnets/IPv4/telegram.lst"
 SUBNETS_CLOUDFLARE="${GITHUB_RAW_URL}/Subnets/IPv4/cloudflare.lst"
 SUBNETS_HETZNER="${GITHUB_RAW_URL}/Subnets/IPv4/hetzner.lst"
 SUBNETS_OVH="${GITHUB_RAW_URL}/Subnets/IPv4/ovh.lst"
+
+# Paths
 SING_BOX_CONFIG="/etc/sing-box/config.json"
+RESOLV_CONF="/etc/resolv.conf"
+
+# Network
 FAKEIP="198.18.0.0/15"
-VALID_SERVICES="russia_inside russia_outside ukraine_inside geoblock block porn news anime youtube discord meta twitter hdrezka tiktok telegram cloudflare google_ai google_play hetzner ovh"
 DNS_RESOLVERS="1.1.1.1 1.0.0.1 8.8.8.8 8.8.4.4 9.9.9.9 9.9.9.11 94.140.14.14 94.140.15.15 208.67.220.220 208.67.222.222 77.88.8.1 77.88.8.8"
 TEST_DOMAIN="fakeip.podkop.fyi"
+CLOUDFLARE_OCTETS="103.21 103.22 103.31 104.16 104.17 104.18 104.19 104.20 104.21 104.22 104.23 104.24 104.25 104.26 104.27 104.28 108.162 131.0 141.101 162.158 162.159 172.64 172.65 172.66 172.67 172.68 172.69 172.70 172.71 173.245 188.114 190.93 197.234 198.41"
+
+# Services
+VALID_SERVICES="russia_inside russia_outside ukraine_inside geoblock block porn news anime youtube discord meta twitter hdrezka tiktok telegram cloudflare google_ai google_play hetzner ovh"
+
+# Misc
 INTERFACES_LIST=""
 SRC_INTERFACE=""
-RESOLV_CONF="/etc/resolv.conf"
-CLOUDFLARE_OCTETS="103.21 103.22 103.31 104.16 104.17 104.18 104.19 104.20 104.21 104.22 104.23 104.24 104.25 104.26 104.27 104.28 108.162 131.0 141.101 162.158 162.159 172.64 172.65 172.66 172.67 172.68 172.69 172.70 172.71 173.245 188.114 190.93 197.234 198.41"
 
 # Color constants
 COLOR_CYAN="\033[0;36m"
 COLOR_GREEN="\033[0;32m"
 COLOR_RESET="\033[0m"
+
+# =================================================================
+# Main Logic
+# =================================================================
+
+config_load "/etc/config/podkop"
 
 log() {
     local message="$1"
@@ -483,7 +500,7 @@ process_domains_text() {
     sed 's/[, ]\+/\n/g' "${tmp_file}.filtered" | while IFS= read -r domain; do
         domain=$(echo "$domain" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
         if [ -n "$domain" ]; then
-            sing_box_ruleset_domains "$domain" "$name"
+            sing_box_add_to_ruleset "domain_suffix" "$domain" "$name"
         fi
     done
     
@@ -506,7 +523,7 @@ process_subnets_text() {
             if ! echo "$subnet" | grep -q "/"; then
                 subnet="$subnet/32"
             fi
-            sing_box_ruleset_subnets "$subnet" "$name"
+            sing_box_add_to_ruleset "ip_cidr" "$subnet" "$name"
         fi
     done
     
@@ -1353,104 +1370,70 @@ sing_box_config_vless() {
 
 # Process. Sing-box rules
 
-sing_box_ruleset_domains() {
-    log "Configure ruleset domains in sing-box"
+sing_box_add_to_ruleset() {
+    log "Configure ruleset in sing-box"
 
-    local domain=$1
-    local tag=$2
+    local type=$1
+    local value=$2
+    local tag=$3
+
+    if [ "$type" = "ip_cidr" ]; then
+        nft add element inet PodkopTable podkop_subnets { $value }
+    fi
 
     # Check if there is a route.rule_set for the specified tag
-    local tag_exists=$(jq -r --arg tag "$tag" '
-        .route.rule_set[]? | select(.tag == $tag) | .tag
+    local tag_exists=$(jq -r --arg tag "$tag" \
+        '.route.rule_set[]? | select(.tag == $tag) | .tag
     ' /etc/sing-box/config.json)
 
-    # If the tag exists, add the domain
+    # If the tag exists, add the value
     if [[ -n "$tag_exists" ]]; then
         jq \
         --arg tag "$tag" \
-        --arg domain "$domain" \
-        '
+        --arg type "$type" \
+        --arg value "$value" \
+        ' \
         .route.rule_set[] |= 
         if .tag == $tag then
-            .rules[0].domain_suffix += [$domain]
+            .rules[0][$type] += [$value]
         else
             .
         end
         ' "$SING_BOX_CONFIG" | build_sing_box_config
 
-        log "$domain added to the list for tag $tag"
+        log "$value added to the list for tag $tag"
     else
         # If tag does not exist, add a new set of rules
         jq \
         --arg tag "$tag" \
-        --arg domain "$domain" \
-        '
+        --arg type "$type" \
+        --arg value "$value" \
+        ' \
         .route.rule_set += [
             {
                 "tag": $tag,
                 "type": "inline",
                 "rules": [
                     {
-                        "domain_suffix": [$domain]
+                        ($type): [$value]
                     }
                 ]
             }
         ]' "$SING_BOX_CONFIG" | build_sing_box_config
 
-        log "$domain added as a new rule set for tag $tag"
+        log "$value added as a new rule set for tag $tag"
     fi
 }
 
-sing_box_ruleset_subnets() {
-    log "Configure ruleset domains in sing-box"
-
-    local subnet=$1
-    local tag=$2
-    
-    # nft
-    nft add element inet PodkopTable podkop_subnets { $subnet }
-
-    # Check if there is a route.rule_set for the specified tag
-    local tag_exists=$(jq -r --arg tag "$tag" '
-        .route.rule_set[]? | select(.tag == $tag) | .tag
-    ' /etc/sing-box/config.json)
-
-    # If tag exists, add the domain
-    if [[ -n "$tag_exists" ]]; then
-        jq \
-        --arg tag "$tag" \
-        --arg subnet "$subnet" \
-        '
-        .route.rule_set[] |= 
-        if .tag == $tag then
-            .rules[0].ip_cidr += [$subnet]
-        else
-            .
-        end
-        ' "$SING_BOX_CONFIG" | build_sing_box_config
-
-        log "$subnet added to the list for tag $tag"
-    else
-        # If tag does not exist, add a new set of rules
-        jq \
-        --arg tag "$tag" \
-        --arg subnet "$subnet" \
-        '
-        .route.rule_set += [
-            {
-                "tag": $tag,
-                "type": "inline",
-                "rules": [
-                    {
-                        "ip_cidr": [$subnet]
-                    }
-                ]
-            }
-        ]' "$SING_BOX_CONFIG" | build_sing_box_config
-
-        log "$subnet added as a new rule set for tag $tag"
-    fi
+sing_box_ruleset_domains_wrapper() {
+    sing_box_add_to_ruleset "domain_suffix" "$1" "$2"
 }
+
+sing_box_ruleset_subnets_wrapper() {
+    sing_box_add_to_ruleset "ip_cidr" "$1" "$2"
+}
+
+
 
 sing_box_ruleset_domains_json() {
     local domain="$1"
@@ -1487,7 +1470,7 @@ process_domains_for_section() {
         log "Adding a custom domains list for section $section"
         if [ "$custom_domains_list_type" = "dynamic" ]; then
             # Handle list domains from custom_domains
-            config_list_foreach "$section" custom_domains "sing_box_ruleset_domains" "$section"
+            config_list_foreach "$section" custom_domains "sing_box_ruleset_domains_wrapper" "$section"
         elif [ "$custom_domains_list_type" = "text" ]; then
             # Handle domains from text
             config_get custom_domains_text "$section" "custom_domains_text"
@@ -1711,7 +1694,7 @@ list_custom_local_domains_create() {
         domain=$(echo "$domain" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
         if [ -n "$domain" ] && echo "$domain" | grep -E -q '^([a-zA-Z0-9][-a-zA-Z0-9]*\.)+[a-zA-Z]{2,}$'; then
             log "Added $domain from local file"
-            sing_box_ruleset_domains "$domain" "$section"
+            sing_box_add_to_ruleset "domain_suffix" "$domain" "$section"
         else
             log "Invalid domain skipped: $domain"
         fi
@@ -1770,7 +1753,7 @@ process_subnet_for_section() {
         log "Adding a custom subnet list for section $section"
         if [ "$custom_subnets_list_enabled" = "dynamic" ]; then
             # Handle list domains from custom_domains
-            config_list_foreach "$section" custom_subnets "sing_box_ruleset_subnets" "$section"
+            config_list_foreach "$section" custom_subnets "sing_box_ruleset_subnets_wrapper" "$section"
         elif [ "$custom_subnets_list_enabled" = "text" ]; then
             # Handle domains from text
             config_get custom_subnets_text "$section" "custom_subnets_text"
