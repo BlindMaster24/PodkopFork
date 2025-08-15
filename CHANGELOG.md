@@ -27,8 +27,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Firewall Helper:**
   Introduced a smart firewall helper that automatically creates rules to accept Podkop's marked traffic. It detects the correct firewall zone for each configured interface and adds a specific `ACCEPT` rule for packets marked with `0x105`. This prevents them from being dropped by default `REJECT` policies and ensures seamless traffic flow. The helper also cleans up all created rules on stop.
 
-### Changed
-- **Refactoring:**
-  Centralized the logic for adding rules to sing-box, which simplifies the script and reduces code duplication.
-- **Installation Script:**
-  Updated the installation script to download releases from the new repository.
+

@@ -23,8 +23,6 @@ The project is an OpenWrt package and is intended to be installed on an OpenWrt 
 
 **Installation:**
 
-The `README.md` provides the following installation command:
-
 ```sh
 sh <(wget -O - https://raw.githubusercontent.com/itdoginfo/podkop/refs/heads/main/install.sh)
 ```
@@ -65,59 +63,23 @@ This section documents the development process and conventions established for t
 
 ### Commit Messages
 
-To maintain a clear, consistent, and readable git history, this project follows a set of conventions for commit messages.
+To maintain a clear and consistent git history, and to avoid potential encoding issues, please follow these guidelines for commit messages:
 
-#### The 7 Rules of a Great Commit Message
+*   **Use English:** All commit messages must be written in English.
+*   **Use Conventional Commits:** Follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification. The format is:
+    ```
+    <type>(<scope>): <subject>
+    ```
+    *   **type:** `feat` (new feature), `fix` (bug fix), `docs` (documentation), `style` (formatting), `refactor` (code refactoring), `test` (adding tests), `chore` (build process, admin).
+    *   **scope (optional):** The part of the codebase that is affected (e.g., `podkop`, `luci-app`, `readme`).
+    *   **subject:** A short, imperative-tense description of the change.
 
-These are the foundational rules for writing good commit messages, recommended by the Git community:
-
-1.  **Separate subject from body with a blank line.**
-2.  **Limit the subject line to 50 characters.**
-3.  **Capitalize the subject line.**
-4.  **Do not end the subject line with a period.**
-5.  **Use the imperative mood in the subject line** (e.g., `Add feature` not `Added feature`).
-6.  **Wrap the body at 72 characters.**
-7.  **Use the body to explain *what* and *why* vs. *how*.**
-
-#### Structure: Conventional Commits + Gitmoji
-
-To structure the commits, we use the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification, with the addition of [Gitmoji](https://gitmoji.dev/) for better readability.
-
-The format is:
-`<emoji> <type>(<scope>): <subject>`
-
-*   **`<emoji>`:** An emoji that represents the change.
-    *   `✨` for new features.
-    *   `🐛` for bug fixes.
-    *   `📝` for documentation changes.
-    *   `♻️` for refactoring code.
-    *   `🔖` for releases or version bumps.
-    *   `🔧` for configuration changes.
-    *   See the full list at [gitmoji.dev](https://gitmoji.dev).
-
-*   **`<type>`:** The type of the change.
-    *   `feat`: A new feature.
-    *   `fix`: A bug fix.
-    *   `docs`: Documentation only changes.
-    *   `refactor`: A code change that neither fixes a bug nor adds a feature.
-    *   `chore`: Changes to the build process or auxiliary tools.
-
-*   **`<scope>` (optional):** The part of the codebase that is affected (e.g., `podkop`, `luci-app`, `readme`).
-
-*   **`<subject>`:** A short, imperative-tense description of the change.
-
-#### Example of a Full Commit Message
-
-```
-✨ feat(podkop): Add firewall helper for isolated zones
-
-The new firewall helper automatically creates rules to accept Podkop's
-marked traffic (0x105). This prevents packets from being dropped by
-default REJECT policies and ensures seamless traffic flow.
-
-The helper is smart enough to detect the correct firewall zone for
-each configured interface.
-```
+*   **Examples:**
+    ```
+    feat(podkop): Add firewall helper for isolated zones
+    docs: Update installation instructions in README.md
+    chore: Bump version to 0.4.7
+    ```
 
 ### Release Process
 
