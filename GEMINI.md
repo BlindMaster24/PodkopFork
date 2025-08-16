@@ -81,6 +81,11 @@ To maintain a clear and consistent git history, and to avoid potential encoding 
     chore: Bump version to 0.4.7
     ```
 
+### Change Verification and Committing
+
+*   **Verify Changes:** After every modification, review the `git diff` to ensure that the changes are correct and that no unintended code has been added or removed. If there are any issues, restore the previous state or roll back the changes and try again.
+*   **Propose Commits:** Never commit changes directly. Instead, propose a commit message that follows the Conventional Commits standard. The user will be responsible for the final decision to commit the changes.
+
 ### Release Process
 
 To create a new release, follow these steps:
